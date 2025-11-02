@@ -1,5 +1,6 @@
 use crate::auth::{authenticate, AuthError, models::Credentials, registration::register_user};
 use crate::user::{self, NewUser, User};
+use crate::services::all_services;
 use crate::AppState;
 use axum::{
     extract::State,
@@ -28,12 +29,14 @@ struct RegisterTemplate;
 #[template(path = "dashboard.html")]
 struct DashboardTemplate {
     user: Option<User>,
+    services: Vec<String>,
 }
 
 #[derive(Template)]
 #[template(path = "settings.html")]
 struct SettingsTemplate {
     user: Option<User>,
+    services: Vec<String>,
 }
 
 // --- Routes ---
@@ -101,7 +104,8 @@ async fn dashboard_page(
     };
 
     if user.is_some() {
-        DashboardTemplate { user }.into_response()
+        let services: Vec<String> = all_services().iter().map(|s| s.name().to_string()).collect();
+        DashboardTemplate { user, services }.into_response()
     } else {
         Redirect::to("/portal/login").into_response()
     }
@@ -125,7 +129,8 @@ async fn settings_page(
     };
 
     if user.is_some() {
-        SettingsTemplate { user }.into_response()
+        let services: Vec<String> = all_services().iter().map(|s| s.name().to_string()).collect();
+        SettingsTemplate { user, services }.into_response()
     } else {
         Redirect::to("/portal/login").into_response()
     }

@@ -1,4 +1,4 @@
-use crate::auth::{authenticate, AuthError, models::Credentials, registration::register_user};
+use crate::auth::models::Credentials;
 use crate::user::{self, NewUser, User};
 use crate::services::all_services;
 use crate::AppState;
@@ -12,6 +12,7 @@ use axum_extra::extract::Form;
 use tower_sessions::Session;
 use askama::Template;
 use std::sync::Arc;
+use bcrypt::verify;
 
 // --- Session Keys ---
 const USER_ID_KEY: &str = "user_id";
@@ -53,19 +54,17 @@ pub fn create_routes() -> Router<Arc<AppState>> {
 // --- Handlers ---
 #[axum::debug_handler]
 async fn login(
-    State(_state): State<Arc<AppState>>,
+    State(state): State<Arc<AppState>>,
     session: Session,
     Form(creds): Form<Credentials>,
 ) -> impl IntoResponse {
-    match authenticate(&creds) {
-        Ok(user) => {
+    if let Ok(Some(user)) = user::find_user_by_username(&state.db_pool, &creds.username).await {
+        if verify(&creds.password, &user.password_hash).unwrap_or(false) {
             session.insert(USER_ID_KEY, user.id).await.unwrap();
-            Redirect::to("/portal/dashboard").into_response()
-        }
-        Err(AuthError::UserNotFound | AuthError::InvalidPassword) => {
-            Redirect::to("/portal/login").into_response()
+            return Redirect::to("/portal/dashboard").into_response();
         }
     }
+    Redirect::to("/portal/login").into_response()
 }
 
 async fn login_page() -> impl IntoResponse {
@@ -74,7 +73,7 @@ async fn login_page() -> impl IntoResponse {
 
 #[axum::debug_handler]
 async fn register(
-    State(_state): State<Arc<AppState>>,
+    State(state): State<Arc<AppState>>,
     Form(creds): Form<Credentials>,
 ) -> impl IntoResponse {
     let new_user = NewUser {
@@ -82,7 +81,7 @@ async fn register(
         password: creds.password,
     };
 
-    match register_user(new_user) {
+    match user::create_user(&state.db_pool, new_user).await {
         Ok(_) => Redirect::to("/portal/login").into_response(),
         Err(_) => Redirect::to("/portal/register").into_response(),
     }
@@ -94,11 +93,11 @@ async fn register_page() -> impl IntoResponse {
 
 #[axum::debug_handler]
 async fn dashboard_page(
-    State(_state): State<Arc<AppState>>,
+    State(state): State<Arc<AppState>>,
     session: Session,
 ) -> impl IntoResponse {
-    let user: Option<User> = if let Some(user_id) = session.get::<u64>(USER_ID_KEY).await.unwrap() {
-        user::find_user_by_id(user_id)
+    let user: Option<User> = if let Some(user_id) = session.get::<i64>(USER_ID_KEY).await.unwrap() {
+        user::find_user_by_id(&state.db_pool, user_id).await.unwrap_or(None)
     } else {
         None
     };
@@ -119,11 +118,11 @@ async fn logout(session: Session) -> impl IntoResponse {
 
 #[axum::debug_handler]
 async fn settings_page(
-    State(_state): State<Arc<AppState>>,
+    State(state): State<Arc<AppState>>,
     session: Session,
 ) -> impl IntoResponse {
-    let user: Option<User> = if let Some(user_id) = session.get::<u64>(USER_ID_KEY).await.unwrap() {
-        user::find_user_by_id(user_id)
+    let user: Option<User> = if let Some(user_id) = session.get::<i64>(USER_ID_KEY).await.unwrap() {
+        user::find_user_by_id(&state.db_pool, user_id).await.unwrap_or(None)
     } else {
         None
     };
@@ -138,11 +137,11 @@ async fn settings_page(
 
 #[axum::debug_handler]
 async fn delete_current_user(
-    State(_state): State<Arc<AppState>>,
+    State(state): State<Arc<AppState>>,
     session: Session,
 ) -> impl IntoResponse {
-    if let Some(user_id) = session.get::<u64>(USER_ID_KEY).await.unwrap() {
-        if user::delete_user(user_id).is_ok() {
+    if let Some(user_id) = session.get::<i64>(USER_ID_KEY).await.unwrap() {
+        if user::delete_user(&state.db_pool, user_id).await.is_ok() {
             let _ = session.clear().await;
             return Redirect::to("/portal/login").into_response();
         }

@@ -1,4 +1,4 @@
-use crate::user::find_user_by_id;
+use crate::user;
 use axum::{
     extract::State,
     http::StatusCode,
@@ -14,12 +14,12 @@ use crate::AppState;
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Claims {
     pub sub: String,
-    pub user_id: u64,
+    pub user_id: i64,
     pub exp: usize,
 }
 
 pub async fn auth_middleware(
-    State(_app_state): State<Arc<AppState>>,
+    State(app_state): State<Arc<AppState>>,
     mut req: axum::extract::Request,
     next: Next,
 ) -> Result<Response, StatusCode> {
@@ -35,7 +35,7 @@ pub async fn auth_middleware(
         let validation = Validation::default();
 
         if let Ok(token_data) = decode::<Claims>(token, &decoding_key, &validation) {
-            if let Some(user) = find_user_by_id(token_data.claims.user_id) {
+            if let Ok(Some(user)) = user::find_user_by_id(&app_state.db_pool, token_data.claims.user_id).await {
                 req.extensions_mut().insert(Arc::new(user));
                 return Ok(next.run(req).await);
             }

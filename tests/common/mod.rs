@@ -1,9 +1,10 @@
-use app::database::DbPool;
+use sqlx::{Sqlite, Pool};
 use sqlx::sqlite::SqlitePoolOptions;
 
-pub async fn setup_test_db() -> DbPool {
-    // Use in-memory SQLite database for tests
+pub async fn setup_test_db() -> Pool<Sqlite> {
+    // Create an in-memory SQLite database for testing
     let pool = SqlitePoolOptions::new()
+        .max_connections(1)
         .connect("sqlite::memory:")
         .await
         .expect("Failed to create in-memory database pool.");
@@ -12,7 +13,7 @@ pub async fn setup_test_db() -> DbPool {
     sqlx::migrate!("./migrations")
         .run(&pool)
         .await
-        .expect("Failed to run migrations.");
+        .expect("Failed to run database migrations.");
 
     pool
 }

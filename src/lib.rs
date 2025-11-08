@@ -48,5 +48,5 @@ pub fn app(db_pool: DbPool) -> Router {
         .nest("/auth", create_auth_routes(app_state.clone()))
         .nest("/portal", create_portal_routes())
         .layer(session_layer)
-        .with_state(app_state)
+        .with_state(app_state.clone())
 }

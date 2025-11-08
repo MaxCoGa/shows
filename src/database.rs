@@ -1,6 +1,7 @@
-use sqlx::sqlite::{SqlitePool, SqlitePoolOptions};
+use sqlx::sqlite::{SqlitePool, SqliteConnectOptions, SqlitePoolOptions};
 use std::fs;
 use std::path::Path;
+use std::str::FromStr;
 
 pub type DbPool = SqlitePool;
 
@@ -14,17 +15,22 @@ pub async fn init_db() -> Result<SqlitePool, sqlx::Error> {
     }
 
     let db_path = Path::new(DB_DIR).join(DB_FILE);
-    let db_url = db_path.to_str().unwrap();
+    let db_path_str = db_path.to_str().expect("Failed to get db path string");
 
-    // Create the database file if it doesn't exist
-    if !Path::new(db_url).exists() {
-        fs::File::create(db_url).expect("Failed to create database file");
-    }
+    println!("Attempting to connect to database at: {}", db_path_str);
+
+    // Explicitly configure the connection to create the database file if it's missing.
+    let connect_options = SqliteConnectOptions::from_str(db_path_str)?
+        .create_if_missing(true);
 
     let pool = SqlitePoolOptions::new()
         .max_connections(5)
-        .connect(db_url)
+        .connect_with(connect_options)
         .await?;
+
     sqlx::migrate!("./migrations").run(&pool).await?;
+    
+    println!("Database connection successful and migrations run.");
+
     Ok(pool)
 }

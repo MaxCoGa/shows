@@ -17,7 +17,7 @@
             <div id="servicesDropdown" class="services-dropdown-content">
                 <input type="text" placeholder="Search.." id="serviceSearch" onkeyup="filterServices()">
                 {% for service in services %}
-                <a href="#">{{ service }}</a>
+                <a href="/portal/service/{{ service }}">{{ service }}</a>
                 {% endfor %}
             </div>
         </div>

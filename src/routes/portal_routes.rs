@@ -3,7 +3,7 @@ use crate::user::{self, NewUser, User};
 use crate::services::all_services;
 use crate::AppState;
 use axum::{
-    extract::State,
+    extract::{State, Path},
     response::{IntoResponse, Redirect},
     routing::{delete, get},
     Router,
@@ -40,6 +40,14 @@ struct SettingsTemplate {
     services: Vec<String>,
 }
 
+#[derive(Template)]
+#[template(path = "service.html")]
+struct ServiceTemplate {
+    user: Option<User>,
+    services: Vec<String>,
+    service_name: String,
+}
+
 // --- Routes ---
 pub fn create_routes() -> Router<Arc<AppState>> {
     Router::<Arc<AppState>>::new()
@@ -49,6 +57,7 @@ pub fn create_routes() -> Router<Arc<AppState>> {
         .route("/logout", get(logout))
         .route("/settings", get(settings_page))
         .route("/user", delete(delete_current_user))
+        .route("/service/:service_name", get(service_page))
 }
 
 // --- Handlers ---
@@ -147,4 +156,24 @@ async fn delete_current_user(
         }
     }
     Redirect::to("/portal/settings").into_response()
+}
+
+#[axum::debug_handler]
+async fn service_page(
+    State(state): State<Arc<AppState>>,
+    session: Session,
+    Path(service_name): Path<String>,
+) -> impl IntoResponse {
+    let user: Option<User> = if let Some(user_id) = session.get::<i64>(USER_ID_KEY).await.unwrap() {
+        user::find_user_by_id(&state.db_pool, user_id).await.unwrap_or(None)
+    } else {
+        None
+    };
+
+    if user.is_some() {
+        let services: Vec<String> = all_services().iter().map(|s| s.name().to_string()).collect();
+        ServiceTemplate { user, services, service_name }.into_response()
+    } else {
+        Redirect::to("/portal/login").into_response()
+    }
 }

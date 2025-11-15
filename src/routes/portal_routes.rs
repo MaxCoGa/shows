@@ -46,6 +46,7 @@ struct ServiceTemplate {
     user: Option<User>,
     services: Vec<String>,
     service_name: String,
+    resources: Vec<String>,
 }
 
 // --- Routes ---
@@ -172,7 +173,14 @@ async fn service_page(
 
     if user.is_some() {
         let services: Vec<String> = all_services().iter().map(|s| s.name().to_string()).collect();
-        ServiceTemplate { user, services, service_name }.into_response()
+        let resources = if service_name == "container" {
+            vec!["container-1".to_string(), "container-2".to_string()]
+        } else if service_name == "virtual_network" {
+            vec!["vnet-main".to_string()]
+        } else {
+            vec![]
+        };
+        ServiceTemplate { user, services, service_name, resources }.into_response()
     } else {
         Redirect::to("/portal/login").into_response()
     }

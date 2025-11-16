@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Settings</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            background-color: #f2f2f2;
+        }
+        .container {
+            padding: 20px;
+        }
+        .delete-btn {
+            background-color: #f44336;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    {% include "header.html" %}
+
+    <div class="container">
+        <h1>Settings</h1>
+        <p>This is the settings page.</p>
+
+        <h2>Delete Account</h2>
+        <p>Permanently delete your account. This action cannot be undone.</p>
+        <button class="delete-btn" onclick="deleteAccount()">Delete My Account</button>
+    </div>
+
+    <script>
+        function deleteAccount() {
+            if (confirm("Are you sure you want to delete your account? This cannot be undone.")) {
+                fetch('/portal/user', {
+                    method: 'DELETE',
+                })
+                .then(response => {
+                    if (response.redirected) {
+                        window.location.href = response.url;
+                    }
+                })
+                .catch(error => console.error('Error:', error));
+            }
+        }
+    </script>
+</body>
+</html>

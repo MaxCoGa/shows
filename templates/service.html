@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>pCloud - {{ service_name }}</title>
+    <style>
+        .service-container {
+            padding: 20px;
+        }
+        .service-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        .service-actions button {
+            margin-left: 10px;
+        }
+        .filter-bar {
+            margin-bottom: 20px;
+        }
+        .resource-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        .resource-table th, .resource-table td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+        .resource-table th {
+            background-color: #f2f2f2;
+        }
+        .resource-table th:first-child,
+        .resource-table td:first-child {
+            width: 40px;
+            text-align: center;
+        }
+        .resource-table th:last-child,
+        .resource-table td:last-child {
+            width: 40px;
+            text-align: center;
+        }
+        .no-resources {
+            text-align: center;
+            padding: 20px;
+            font-style: italic;
+        }
+    </style>
+</head>
+<body>
+    {% include "header.html" %}
+    <div class="service-container">
+        <div class="service-header">
+            <h1>{{ service_name }}</h1>
+            <div class="service-actions">
+                <button>+ Add</button>
+                <button>Edit columns</button>
+                <button>...</button>
+            </div>
+        </div>
+        <div class="filter-bar">
+            <input type="text" placeholder="Filter by name..." id="resourceFilter" onkeyup="filterResources()">
+        </div>
+        {% if resources.is_empty() %}
+            <div class="no-resources">
+                <p>No {{ service_name }} created.</p>
+            </div>
+        {% else %}
+            <table class="resource-table">
+                <thead>
+                    <tr>
+                        <th><input type="checkbox" onclick="toggleSelectAll(this)"></th>
+                        <th>NAME</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for resource in resources %}
+                        <tr>
+                            <td><input type="checkbox" name="resource_checkbox"></td>
+                            <td>{{ resource }}</td>
+                            <td>...</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        {% endif %}
+    </div>
+    <script>
+        function toggleSelectAll(source) {
+            checkboxes = document.getElementsByName('resource_checkbox');
+            for(var i=0, n=checkboxes.length;i<n;i++) {
+                checkboxes[i].checked = source.checked;
+            }
+        }
+
+        function filterResources() {
+            var input, filter, tbody, tr, td, i, txtValue;
+            input = document.getElementById("resourceFilter");
+            filter = input.value.toUpperCase();
+            tbody = document.querySelector(".resource-table tbody");
+            tr = tbody.getElementsByTagName("tr");
+
+            for (i = 0; i < tr.length; i++) {
+                td = tr[i].getElementsByTagName("td")[1];
+                if (td) {
+                    txtValue = td.textContent || td.innerText;
+                    if (txtValue.toUpperCase().indexOf(filter) > -1) {
+                        tr[i].style.display = "";
+                    } else {
+                        tr[i].style.display = "none";
+                    }
+                }
+            }
+        }
+    </script>
+</body>
+</html>

@@ -4,7 +4,7 @@ use crate::{
         auth_routes::create_routes as create_auth_routes,
         file_routes::create_routes as create_file_routes,
         portal_routes::create_routes as create_portal_routes,
-        services_routes::create_service_routes as create_service_routes,
+        services_routes::create_routes as create_service_routes,
     },
     services::all_services,
 };
@@ -20,6 +20,7 @@ pub mod database;
 pub mod routes;
 pub mod services;
 pub mod user;
+pub mod ansible;
 
 #[derive(Clone)]
 pub struct AppState {

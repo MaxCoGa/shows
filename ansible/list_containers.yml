@@ -1,0 +1,9 @@
+---
+- name: List Docker Containers
+  hosts: targets
+  gather_facts: no
+  tasks:
+    - name: List all containers using the docker CLI
+      ansible.builtin.shell:
+        cmd: "docker ps --all --format '{% raw %}{{json .}}{% endraw %}'"
+      register: result

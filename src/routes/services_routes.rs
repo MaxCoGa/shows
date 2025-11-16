@@ -9,7 +9,7 @@ use axum::{
 use std::sync::Arc;
 
 // --- Routes ---
-pub fn create_service_routes() -> Router<Arc<AppState>> {
+pub fn create_routes() -> Router<Arc<AppState>> {
     Router::<Arc<AppState>>::new().route("/services", get(list_services))
 }
 

@@ -1,0 +1,23 @@
+---
+- name: Deploy Docker Container
+  hosts: targets
+  # become: yes # This allows running commands with sudo
+  vars:
+    container_name: "my-app-container"
+    container_image: "nginx:latest" # Default image, can be overridden
+
+  tasks:
+    - name: Pull the specified Docker image
+      community.docker.docker_image:
+        name: "{{ container_image }}"
+        source: pull
+
+    - name: Create and start the container
+      community.docker.docker_container:
+        name: "{{ container_name }}"
+        image: "{{ container_image }}"
+        state: started
+        restart_policy: always
+        # You can add more options here, like port mappings:
+        # ports:
+        #   - "8080:80"

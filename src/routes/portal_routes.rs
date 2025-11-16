@@ -1,6 +1,7 @@
-use crate::auth::models::Credentials;
+use crate::{ansible, auth::models::Credentials};
 use crate::user::{self, NewUser, User};
 use crate::services::all_services;
+use crate::services::container::Container;
 use crate::AppState;
 use axum::{
     extract::{State, Path},
@@ -59,9 +60,18 @@ pub fn create_routes() -> Router<Arc<AppState>> {
         .route("/settings", get(settings_page))
         .route("/user", delete(delete_current_user))
         .route("/service/:service_name", get(service_page))
+        .route("/test-deploy", get(test_deploy_route)) // Add this line
 }
 
 // --- Handlers ---
+#[axum::debug_handler]
+async fn test_deploy_route() -> impl IntoResponse {
+    match ansible::run_deployment("test-nginx-container", "nginx:latest").await {
+        Ok(_) => "Deployment successful!".into_response(),
+        Err(e) => format!("Deployment failed: {:?}", e).into_response(),
+    }
+}
+
 #[axum::debug_handler]
 async fn login(
     State(state): State<Arc<AppState>>,
@@ -174,7 +184,15 @@ async fn service_page(
     if user.is_some() {
         let services: Vec<String> = all_services().iter().map(|s| s.name().to_string()).collect();
         let resources = if service_name == "container" {
-            vec!["container-1".to_string(), "container-2".to_string()]
+            let fetched_containers = ansible::list_containers().await.unwrap_or_else(|e| {
+                eprintln!("Failed to list containers: {:?}", e);
+                vec![]
+            });
+            let deserialized_containers: Vec<Container> = serde_json::from_value(serde_json::Value::Array(fetched_containers)).unwrap_or_else(|e| {
+                eprintln!("Failed to deserialize containers: {:?}", e);
+                vec![]
+            });
+            deserialized_containers.into_iter().map(|c| c.names).collect()
         } else if service_name == "virtual_network" {
             vec!["vnet-main".to_string()]
         } else {

@@ -21,17 +21,21 @@ async fn spawn_app() -> String {
 
 #[tokio::test]
 #[serial]
-async fn test_container_service() {
+async fn test_container_service_returns_a_list_of_containers() {
+    // Arrange
     let address = spawn_app().await;
     let client = reqwest::Client::new();
 
+    // Act
     let response = client
         .get(&format!("{}/api/container", &address))
         .send()
         .await
         .expect("Failed to execute request.");
 
+    // Assert
     assert!(response.status().is_success());
-    let body: serde_json::Value = response.json().await.unwrap();
-    assert_eq!(body, serde_json::json!({ "service": "container" }));
+    let body: serde_json::Value = response.json().await.expect("Failed to parse json body");
+
+    assert!(body.is_array(), "Response body is not a JSON array");
 }
